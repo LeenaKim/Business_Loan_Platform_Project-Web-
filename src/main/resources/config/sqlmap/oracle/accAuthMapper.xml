@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="auth.dao.AuthDAO">
+	<resultMap type="auth" id="authMap">
+		<result column="bizr_no" property="bizrNo"/>
+		<result column="acc_no" property="accNo"/>
+		<result column="auth_req_date" property="authReqDate"/>
+		<result column="auth_date" property="authDate"/>
+		<result column="auth_status" property="authStatus"/>
+	</resultMap>
+	<!-- 새로운 인증요청 -->
+	<insert id="insertNewAuth" parameterType="auth">
+		insert into acc_auth
+			(bizr_no, acc_no, auth_req_date, auth_status)
+			values 
+			(#{bizrNo}, #{accNo}, sysdate, 'W')
+	</insert>
+	<!-- 세무사의 모든 인증요청 리스트 불러오기 -->
+	<select id="selectAllAuthWaiting" parameterType="accountant" resultMap="authMap">
+		select a.*, name
+		from (select bizr_no, acc_no, to_char(auth_req_date, 'yyyy-mm-dd') as auth_req_date, 
+        	to_char(auth_date, 'yyyy-mm-dd') as auth_date, auth_status
+      		from acc_auth
+      		where acc_no = #{accNo} and auth_status = 'W') a, corp
+		where corp.bizr_no = a.bizr_no
+	</select>
+	<!-- 기업의 모든 인증요청 리스트 불러오기 -->
+	<select id="selectAllAuthWaitingCorpSide" parameterType="corp" resultMap="authMap">
+		select a.*, name
+		from (select bizr_no, acc_no, to_char(auth_req_date, 'yyyy-mm-dd') as auth_req_date, 
+        	to_char(auth_date, 'yyyy-mm-dd') as auth_date, auth_status
+      		from acc_auth
+      		where bizr_no = #{bizrNo} and auth_status = 'W') a, accountant
+		where accountant.acc_no = a.acc_no
+	</select>
+	<!-- 기업이 세무사 인증하기 -->
+	<update id="updateAuthStatus" parameterType="auth">
+		update acc_auth 
+		set auth_status = 'C'
+		where bizr_no = #{bizrNo} and acc_no = #{accNo}
+	</update>
+	<!-- 기업이 인증된 세무사 삭제하기 -->
+	<delete id="deleteAuth" parameterType="auth">
+		delete 
+		from acc_auth
+		where bizr_no = #{bizrNo} and acc_no = #{accNo}
+	</delete>
+</mapper>

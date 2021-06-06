@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="emp.dao.EmpDAO">
+	<resultMap type="emp" id="empMap">
+		<result column="branch_nm" property="branchNm"/>
+	</resultMap>
+	<!-- 로그인 조회 -->
+	<select id="login" parameterType="emp" resultMap="empMap">
+		select *
+			from bank_emp
+			where empno = #{empno} and pw = #{pw}
+	</select>
+	<!-- 우리지점 대출왕 -->
+	<select id="loanAppCntByEmp" parameterType="emp" resultMap="empMap">
+		select ename, a.*
+		from bank_emp b, 
+		    (
+		    select count(*) as cnt, empno
+		    from loan_app
+		    where branch_nm = (select branch_nm from bank_emp where empno = #{empno})
+		    group by empno
+		    ) a
+		where a.empno = b.empno
+		order by cnt desc
+	</select>
+</mapper>

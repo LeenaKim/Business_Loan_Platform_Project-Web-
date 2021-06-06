@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="acnt.dao.AcntDAO">
+	<resultMap type="acnt" id="acntMap">
+		<result column="reg_date" property="regDate"/>
+		<result column="bizr_no" property="bizrNo"/>
+	</resultMap>
+	<!-- 계좌 디테일 조회 -->
+	<select id="selectOne" parameterType="String" resultMap="acntMap">
+		select no, balance, nickname, to_char(reg_date, 'yyyy-mm-dd') as reg_date, bizr_no, valid
+		from acnt
+		where no = #{no}
+	</select>
+	<!-- 잔액 변경 -->
+	<update id="updateBalance" parameterType="map">
+		update acnt set balance = balance - #{amt} where no = #{no}
+	</update>
+	<!-- 유저 명의의 계좌 조회 -->
+	<select id="selectAll" parameterType="corp" resultMap="acntMap">
+		select no, balance, nickname, to_char(reg_date, 'yyyy-mm-dd') as reg_date, bizr_no
+		from acnt
+		where bizr_no = #{bizrNo} and valid = 'V'
+	</select>
+	<!-- 가장 최근에 개설된 계좌 하나 조회 -->
+	<select id="selectOneByRegDate" parameterType="corp" resultMap="acntMap">
+		select *
+		from (select no, balance, nickname, to_char(reg_date, 'yyyy-mm-dd') as reg_date, bizr_no
+			  from acnt
+			  where bizr_no = #{bizrNo} and valid = 'V'
+			  order by reg_date desc)
+		where <![CDATA[rownum <= 1]]>
+	</select>
+	<!-- 입금 -->
+	<update id="deposit" parameterType="map">
+		update acnt
+		set balance = balance + #{amount}
+		where no = #{no}
+	</update>
+	<!-- 계좌 유효성 업데이트 -->
+	<update id="validate" parameterType="String">
+		update acnt 
+		set valid = 'V'
+		where no = #{no}
+	</update>
+</mapper>

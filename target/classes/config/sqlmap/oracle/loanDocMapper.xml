@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="loanDoc.dao.loanDocDAO">
+	<resultMap type="map" id="loanDocMap">
+		<result column="app_no" property="appNo"/>
+		<result column="doc_no" property="docNo"/>
+	</resultMap>
+	<!-- 새로운 대출 신청 서류 내역 저장 -->
+	<insert id="insert" parameterType="map">
+		insert into loan_doc values(#{appNo}, #{docNo}, seq_loan_doc_no.nextval)
+	</insert>
+</mapper>

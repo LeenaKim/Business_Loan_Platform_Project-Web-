@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="loanProd.dao.loanProdDAO">
+
+	<resultMap type="loanProd" id="loanProdMap">
+		<result column="prod_no" property="prodNo"/>
+		<result column="term_mon" property="termMon"/>
+		<result column="interest_cal_mtd" property="interestCalMtd"/>
+		<result column="cancle_re_mtd" property="cancleReMtd"/>
+		<result column="rep_type" property="repType"/>
+		<result column="rep_mtd" property="repMtd"/>
+		<result column="mid_rpy_fee_rate" property="midRpyFeeRate"/>
+	</resultMap>
+	<!-- 모든 상품 리스트 가져오기 -->
+	<select id="selectAll" resultType="loanProd">
+		select *
+			from loan_prod
+			order by prod_no asc
+	</select>
+	<!-- 상품 전체 수 가져오기 -->
+	<select id="selectCnt" resultType="int">
+		select count(*)
+			from loan_prod
+	</select>
+	<select id="selectPerPage" parameterType="java.util.Map" resultMap="loanProdMap">
+		select *
+			from (select rownum as rnum, a.*
+				  from (select * from loan_prod) a
+				  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		    where rnum > #{boardCntPerPage}*(#{pageNo}-1)
+	</select>
+	
+	<select id="selectMulProd" parameterType="java.util.Map" resultMap="loanProdMap">
+		select *
+			from loan_prod
+			where prod_no in
+			<foreach collection="list" item="pno" separator="," open="(" close=")">
+				#{pno}
+			</foreach>
+	</select>
+	
+	<select id="selectOndProd" parameterType="String" resultMap="loanProdMap">
+		select *
+			from loan_prod
+			where prod_no = #{no}
+	</select>
+	
+	<select id="selectInterest" parameterType="map" resultType="float">
+		select interest
+			from interest_test
+			where loan_type = #{loanType} and standard_val = #{standard}
+	</select>
+	
+	<select id="selectProdName" parameterType="String" resultType="String">
+		select name
+			from loan_prod
+			where prod_no = #{no}
+	</select>
+</mapper>

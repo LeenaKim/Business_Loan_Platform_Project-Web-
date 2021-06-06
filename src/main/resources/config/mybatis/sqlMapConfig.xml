@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+		<typeAlias type="beone.loanProd.vo.LoanProdVO" alias="loanProd"/>
+		<typeAlias type="beone.loanApp.vo.LoanAppVO" alias="loanApp"/>
+		<typeAlias type="beone.loanHistory.vo.LoanHistoryVO" alias="loanHistory"/>
+		<typeAlias type="beone.corp.vo.CorpVO" alias="corp"/>
+		<typeAlias type="beone.doc.vo.DocVO" alias="doc"/>
+		<typeAlias type="beone.rep.vo.RepVO" alias="rep"/>
+		<typeAlias type="beone.accountant.vo.AccountantVO" alias="accountant"/>
+		<typeAlias type="beone.rpyHistory.vo.RpyHistoryVO" alias="rpyHistory"/>
+		<typeAlias type="beone.acnt.vo.AcntVO" alias="acnt"/>
+		<typeAlias type="beone.emp.vo.EmpVO" alias="emp"/>
+		<typeAlias type="beone.finData.vo.FinDataVO" alias="finData"/>
+		<typeAlias type="beone.transaction.vo.TransactionVO" alias="transaction"/>
+		<typeAlias type="beone.interest.vo.InterestVO" alias="interest"/>
+		<typeAlias type="beone.loanEval.vo.LoanEvalVO" alias="loanEval"/>
+		<typeAlias type="beone.auth.vo.AuthVO" alias="auth"/>
+	</typeAliases>
+</configuration>

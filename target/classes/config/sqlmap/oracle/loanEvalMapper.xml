@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="loanEval.dao.LoanEvalDAO">
+	<resultMap type="loanEval" id="loanEvalMap">
+		<result column="app_no" property="appNo"/>
+		<result column="eval_date" property="evalDate"/>
+		<result column="eval_result" property="evalResult"/>
+		<result column="eval_comment" property="evalComment"/>
+	</resultMap>
+	<!-- 새로운 심사 결과 저장 -->
+	<insert id="insertNewLoanEval" parameterType="loanEval">
+		insert into loan_eval
+			(app_no, eval_result
+		<if test="evalComment != null">
+			, eval_comment
+		</if>
+			)
+			values
+			(#{appNo}, #{evalResult}
+		<if test="evalComment != null">
+			, #{evalComment}
+		</if>
+			)
+	</insert>
+	<!-- 대출기각사유 가져오기 -->
+	<select id="selectEvalComment" parameterType="int" resultMap="loanEvalMap">
+		select * 
+		from loan_eval
+		where app_no = #{appNo}
+	</select>
+</mapper>

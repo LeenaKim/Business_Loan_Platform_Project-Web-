@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="rep.dao.RepDAO">
+	<resultMap type="rep" id="repMap">
+		<result column="bizr_no" property="bizrNo"></result>
+		<result column="rep_name" property="repName"></result>
+	</resultMap>
+	<!-- 해당 기업의 대표자 조회 -->
+	<select id="selectAll" resultMap="repMap" parameterType="corp">
+		select * from rep where bizr_no = #{bizrNo}
+	</select>
+</mapper>

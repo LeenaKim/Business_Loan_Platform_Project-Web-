@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="corp.dao.CorpDAO">
+	<resultMap type="corp" id="corpMap">
+		<result column="bizr_no" property="bizrNo"/>
+		<result column="pw" property="pw"/>
+		<result column="name" property="name"/>
+		<result column="name_eng" property="nameEng"/>
+		<result column="jurir_no" property="jurirNo"/>
+		<result column="corp_cls" property="corpCls"/>
+		<result column="induty_code" property="indutyCode"/>
+		<result column="adres" property="adres"/>
+		<result column="hm_url" property="hmUrl"/>
+		<result column="country_code" property="countryCode"/>
+		<result column="phn_no" property="phnNo"/>
+		<result column="country_code_fax" property="countryCodeFax"/>
+		<result column="fax_no" property="faxNo"/>
+		<result column="est_dt" property="estDt"/>
+		<result column="acc_mt" property="accMt"/>
+	</resultMap>
+<!-- 기업 -->
+	<!-- 로그인 조회 -->
+	<select id="login" parameterType="corp" resultMap="corpMap">
+		select bizr_no, pw, name, name_eng, jurir_no, corp_cls, induty_code, adres, hm_url, country_code,
+			   phn_no, country_code_fax, fax_no, to_char(est_dt, 'yyyy-mm-dd') as est_dt, acc_mt
+			from corp
+			where bizr_no = #{bizrNo} and pw = #{pw}
+	</select>
+	<!-- 기업분석 페이지를 위한 재무정보 조회 -->
+	<select id="analysis" parameterType="corp" resultType="hashMap">
+		SELECT a.*
+		FROM (SELECT DISTINCT i.turn, i.sales, i.busi_profits, i.net_incm, f.curr_ast, f.non_curr_ast,
+				f.ttl_ast, f.curr_liab, f.non_curr_liab, f.ttl_liab, f.capital, f.ernd_splus, f.ttl_capital,
+				c.sales_cf, c.fin_cf, c.invst_cf, to_char(i.issue_date - 360, 'yyyy') as issue_date
+				from icm_stmt i, fs_status f, cash_flow c
+				where i.bizr_no = f.bizr_no and f.bizr_no = c.bizr_no AND i.turn = f.turn AND f.turn = c.turn AND i.bizr_no = #{bizrNo}
+				ORDER BY i.turn) a
+		where <![CDATA[rownum <= 3]]> 
+	</select>
+	<!-- 기업분석 페이지를 위한 신용등급 이력 조회 -->
+	<select id="selectCreditRnk" parameterType="corp" resultType="hashMap">
+		select a.*
+		from (select bizr_no, to_char(fnc_stmt_date, 'yyyy-mm-dd') as fnc_stmt_date, credit_rnk, to_char(rnk_date, 'yyyy-mm-dd') as rnk_date
+      		  from credit_rank_history
+      		  where bizr_no = #{bizrNo}
+        	  order by rnk_date ) a
+		where <![CDATA[rownum <= 3]]>
+	</select>
+	<!-- 재무데이터 입력 -->
+	<insert id="insertFinData" parameterType="finData">
+	{call
+		declare
+		begin
+			insert into icm_stmt(turn, bizr_no, sales, busi_profits, net_incm, issue_date)
+			values(#{turn}, #{bizrNo}, #{sales}, #{busiProfits}, #{netIncm}, to_date(#{issueDate}, 'yyyy-mm-dd'));
+			insert into cash_flow(turn, bizr_no, sales_cf, fin_cf, invst_cf, issue_date)
+			values(#{turn}, #{bizrNo}, #{salesCf}, #{finCf}, #{invstCf}, to_date(#{issueDate}, 'yyyy-mm-dd'));
+			insert into fs_status(turn, bizr_no, curr_ast, non_curr_ast, ttl_ast, curr_liab, non_curr_liab, ttl_liab, capital, ernd_splus, ttl_capital, issue_date)
+			values(#{turn}, #{bizrNo}, #{currAst}, #{nonCurrAst}, #{ttlAst}, #{currLiab},
+				#{nonCurrLiab}, #{ttlLiab}, #{capital}, #{erndSplus}, #{ttlCapital}, to_date(#{issueDate}, 'yyyy-mm-dd'));
+		end
+	}
+	</insert>
+	<!-- 재무데이터 삭제 -->
+	<delete id="deleteFinData" parameterType="doc">
+	{call
+		declare
+		begin
+			delete from icm_stmt where bizr_no = #{bizrNo} and issue_date = #{issueDate};
+			delete from cash_flow where bizr_no = #{bizrNo} and issue_date = #{issueDate};
+			delete from fs_status where bizr_no = #{bizrNo} and issue_date = #{issueDate};
+		end
+	}
+	</delete>
+	<!-- 회원가입 -->
+	<insert id="insertCorp" parameterType="corp">
+		insert into corp values(#{bizrNo}, #{pw}, #{name}, #{nameEng}, #{jurirNo}, #{corpCls, jdbcType=VARCHAR}, 
+			#{indutyCode}, #{adres}, #{hmUrl}, #{countryCode}, #{phnNo}, #{countryCodeFax}, 
+			#{faxNo}, #{estDt}, #{accMt, jdbcType=VARCHAR})
+	</insert>
+	<!-- 기업 정보 수정 -->
+	<update id="updateCorp" parameterType="corp">
+		update corp set name = #{name}, name_eng = #{nameEng}, corp_cls = #{corpCls}, induty_code = #{indutyCode},
+					adres = #{adres}, hm_url  = #{hmUrl}, country_code = #{countryCode}, phn_no = #{phnNo}, 
+					country_code_fax = #{countryCodeFax}, fax_no = #{faxNo}, est_dt = #{estDt}, acc_mt = #{accMt}
+		where bizr_no = #{bizrNo}
+	</update>
+<!-- 은행 -->
+	<!-- BizrNo로 기업정보 조회 -->
+	<select id="selectOneByBizrNo" parameterType="String" resultMap="corpMap">
+		select bizr_no, pw, name, name_eng, jurir_no, corp_cls, induty_code, adres, hm_url, country_code,
+			   phn_no, country_code_fax, fax_no, to_char(est_dt, 'yyyy-mm-dd') as est_dt, acc_mt
+		from corp
+		where bizr_no = #{bizrNo}
+	</select>
+	<!-- 다트에서 실제 재무제표와 비교하기위한 기업 코드 끌어오기  -->
+	<select id="selectCorpCode" parameterType="string" resultType="String">
+		select corp_code 
+		from corp_code
+		where bizr_no = #{bizrNo}
+	</select>
+</mapper>

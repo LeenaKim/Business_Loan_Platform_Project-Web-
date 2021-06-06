@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="transaction.dao.TransactionDAO">
+	<resultMap type="transaction" id="transactionMap">
+		<result column="occur_time" property="occurTime"/>
+		<result column="main_acnt_no" property="mainAcntNo"/>
+		<result column="obj_acnt_no" property="objAcntNo"/>
+		<result column="obj_name" property="objName"/>
+		<result column="w_amount" property="wAmount"/>
+		<result column="d_amount" property="dAmount"/>
+	</resultMap>
+	<!-- 해당 계좌의 모든 계좌내역 조회 (최근 3개월치) -->
+	<select id="selectAll" parameterType="String" resultMap="transactionMap">
+		select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+		from transaction
+		where main_acnt_no = #{no} and occur_time > add_months(sysdate, -3)
+		order by occur_time desc
+	</select>
+	<!-- 해당 계좌의 모든 계좌내역 조회 (다음 20개) -->
+	<select id="selectNextAll" parameterType="map" resultMap="transactionMap">
+		<![CDATA[
+		select * 
+		from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+			  from transaction
+			  where main_acnt_no = #{no} and no < #{lastTransNo}
+			  order by occur_time desc)
+		where rownum <= 20
+		]]>
+	</select>
+	<!-- 최근 3개월 거래내역 건수 -->
+	<select id="selectCntLastThrMons" parameterType="String" resultType="int">
+		select count(*)
+		from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+				from transaction
+				where main_acnt_no = #{no} and occur_time > add_months(sysdate, -3)
+				order by occur_time desc)
+	</select>
+	<!-- 한 페이지만큼 가져오기 -->
+	<select id="selectPerPage" parameterType="java.util.Map" resultMap="transactionMap">
+		select *
+			from (select rownum as rnum, a.*
+				  from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+						from transaction
+						where main_acnt_no = #{no} and occur_time > add_months(sysdate, -3)
+						order by occur_time desc) a
+				  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		    where rnum > #{boardCntPerPage}*(#{pageNo}-1)
+	</select>
+	<!-- 정해진 기간동안의 거래내역 건수 -->
+	<select id="selectCntWithTerms" parameterType="map" resultType="int">
+		<![CDATA[
+		select count(*)
+		from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+				from transaction
+				where main_acnt_no = #{no} and occur_time >= sysdate - (#{term} + 1)
+				order by occur_time desc)
+		]]>
+	</select>
+	<!-- 정해진 기간동안 한 페이지만큼 가져오기 -->
+	<select id="selectPerPageWithTerm" parameterType="java.util.Map" resultMap="transactionMap">
+		select *
+			from (select rownum as rnum, a.*
+				  from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+						from transaction
+						where main_acnt_no = #{no} and occur_time > sysdate - (#{term} + 1)
+						order by occur_time desc) a
+				  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		    where rnum > #{boardCntPerPage}*(#{pageNo}-1)
+	</select>
+	<!-- 커스텀 기간동안의 거래내역 건수 -->
+	<select id="selectCntCustomTerm" parameterType="map" resultType="int">
+		<![CDATA[
+		select count(*)
+		from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+				from transaction
+				where main_acnt_no = #{no} and occur_time >= #{start} and occur_time <= (to_date(#{end}, 'yyyy-mm-dd') + 1)
+				order by occur_time desc)
+		]]>
+	</select>
+	<!-- 커스텀 기간동안 한 페이지만큼 가져오기 -->
+	<select id="selectPerPageCustomTerm" parameterType="java.util.Map" resultMap="transactionMap">
+		<![CDATA[
+		select *
+			from (select rownum as rnum, a.*
+				  from (select no, to_char(occur_time, 'yyyy-mm-dd hh:mm:ss') as occur_time, summary, main_acnt_no, obj_acnt_no, obj_name, w_amount, d_amount, corr, balance
+						from transaction
+						where main_acnt_no = #{no} and occur_time >= #{start} and occur_time <= (to_date(#{end}, 'yyyy-mm-dd') + 1)
+						order by occur_time desc) a
+				  where rownum <= #{boardCntPerPage}*#{pageNo})
+		    where rnum > #{boardCntPerPage}*(#{pageNo}-1)
+		]]>
+	</select>
+	<!-- 거래내역 추가 -->
+	<insert id="insertNewTrans" parameterType="transaction">
+		insert into transaction
+			(
+				no, occur_time, main_acnt_no, obj_name, balance
+		<if test="summary != null">
+			, summary
+		</if>
+		<if test="objAcntNo != null">
+			, obj_acnt_no
+		</if>
+		<if test="wAmount != null">
+			, w_amount
+		</if>
+		<if test="dAmount != null">
+			, d_amount
+		</if>
+			)
+		values
+			(
+				seq_transaction_no.nextval, sysdate, #{mainAcntNo}, #{objName}, #{balance}
+		<if test="summary != null">
+			, #{summary}
+		</if>
+		<if test="objAcntNo != null">
+			, #{objAcntNo}
+		</if>
+		<if test="wAmount != null">
+			, #{wAmount}
+		</if>
+		<if test="dAmount != null">
+			, #{dAmount}
+		</if>
+			)
+	</insert>
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="loanHistory.dao.LoanHistoryDAO">
+	<resultMap type="loanHistory" id="loanHisMap">
+		<result column="loan_no" property="loanNo"/>
+		<result column="loan_type" property="loanType"/>
+		<result column="start_date" property="startDate"/>
+		<result column="left_amt" property="leftAmt"/>
+		<result column="fin_date" property="finDate"/>
+		<result column="pcpl_amt" property="pcplAmt"/>
+		<result column="loan_acnt" property="loanAcnt"/>
+		<result column="interest_acnt" property="interestAcnt"/>
+		<result column="interest_date" property="interestDate"/>
+		<result column="ass_type" property="assType"/>
+		<result column="loan_status" property="loanStatus"/>
+		<result column="prod_name" property="prodName"/>
+		<result column="bizr_no" property="bizrNo"/>
+	</resultMap>
+<!-- 기업용 -->
+	<!-- 기업 대출내역 조회 -->
+	<select id="selectAll" resultMap="loanHisMap" parameterType="String">
+		select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+			trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+			(select name 
+			 from loan_prod
+			 where prod_no = a.prod_no) as prod_name
+			from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, trunc((fin_date - start_date)/30) as loan_mons,
+                         left_amt, to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+				  		 interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+	      		  from loan_history) a
+        where bizr_no = #{no}
+        order by start_date
+	</select>
+	<!-- 기업 대출내역 조회 페이징 -->
+	<select id="selectAllPaging" resultMap="loanHisMap" parameterType="map">
+		select *
+		from (select rownum as rnum, a.*
+      		  from (select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+							trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+							(select name from loan_prod where prod_no = a.prod_no) as prod_name
+					from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, trunc((fin_date - start_date)/30) as loan_mons,
+		                  left_amt, to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+						  interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+			      		  from loan_history) a
+		        	where bizr_no = #{bizrNo}
+        			order by start_date) a
+      		  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		where <![CDATA[rnum > #{boardCntPerPage}*(#{pageNo}-1)]]>
+	</select>
+	<!-- 기업 대출내역 건수 조회 페이징 -->
+	<select id="selectCntPaging" parameterType="String" resultType="int">
+		select count(*)
+			from loan_history
+			where bizr_no = #{bizrNo}
+	</select>
+	<!-- 상환시 대출잔금 업데이트 -->
+	<update id="updateLeftAmt" parameterType="map">
+		update loan_history set left_amt = left_amt - #{amt} where loan_no = ${loanNo}
+	</update>
+	<!-- 대출 계좌 조회 -->
+	<select id="selectOne" resultMap="loanHisMap" parameterType="String">
+		select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+			trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+			(select name 
+			 from loan_prod
+			 where prod_no = a.prod_no) as prod_name
+			from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, trunc((fin_date - start_date)/30) as loan_mons,
+                         left_amt, to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+				  		 interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+	      		  from loan_history) a
+	        where loan_no = #{loanNo}
+	</select>
+	<!-- 가장 최근 대출 하나 가져오기 -->
+	<select id="selectOneLatest" parameterType="String" resultMap="loanHisMap">
+	select *
+		from (select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+			trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+			(select name 
+			 from loan_prod
+			 where prod_no = a.prod_no) as prod_name
+			from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, trunc((fin_date - start_date)/30) as loan_mons,
+                         left_amt, to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+				  		 interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+	      		  from loan_history) a
+	        where bizr_no = #{bizrNo}
+	        order by start_date desc)
+		where <![CDATA[rownum <= 1]]>
+	</select>
+<!-- 관리자용 -->
+	<!-- 담당 대출 조회 -->
+	<select id="selectAllByEmpno" parameterType="emp" resultMap="loanHisMap">
+		select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+		trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+		(select name 
+		 from loan_prod
+		 where prod_no = a.prod_no) as prod_name
+		from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, left_amt, trunc((fin_date - start_date)/30) as loan_mons,
+			  		 to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+			  		 interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+      		  from loan_history) a
+        where empno = #{empno}
+        order by start_date
+	</select>
+	<!-- 페이징 적용 담당 대출 조회 -->
+	<select id="selectPerPage" parameterType="java.util.Map" resultMap="loanHisMap">
+		select *
+		from (select rownum as rnum, a.*
+      		  from (select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+						trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+						(select name 
+			 			from loan_prod
+			 			where prod_no = a.prod_no) as prod_name
+					from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, trunc((fin_date - start_date)/30) as loan_mons,
+                         left_amt, to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+				  		 interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no
+	      		 		 from loan_history) a
+                  	where empno = #{empno}) a
+      		  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		where <![CDATA[rnum > #{boardCntPerPage}*(#{pageNo}-1)]]>
+	</select>
+	<!-- 총 대출내역 건수 -->
+	<select id="selectCnt" resultType="int" parameterType="emp">
+		select count(*)
+			from loan_history
+			where empno = #{empno} and loan_status = 'I'
+	</select>
+	<!-- 매일 자정에 대출 종료일 체크하여 대출 상태 업데이트 -->
+	<update id="updateLoanStatusSch">
+	<![CDATA[
+		update loan_history set loan_status = 'C' where fin_date = sysdate and left_amt = 0
+	]]>
+	</update>
+	<!-- 대출 승인시 새로운 대출내역 생성 -->
+	<insert id="insertNewLoanHis" parameterType="loanApp">
+		insert into loan_history 
+			(
+				loan_no, loan_type, start_date, fin_date, pcpl_amt, interest, loan_acnt, interest_acnt, interest_date,
+				loan_status, prod_no, bizr_no, left_amt, auto_interest_trans, empno
+		<if test="assType != null">
+				, ass_type
+		</if>
+			)
+		values
+			(
+				seq_loan_history_no.nextval, #{loanType}, sysdate, add_months(sysdate, +#{appMonth}), #{appAmount}, #{appInterest},#{loanAcnt}, #{interestAcnt}, #{interestDate}, 
+				'I', #{prodNo}, #{bizrNo}, #{appAmount}, #{autoInterestTrans}, #{empno}
+		<if test="assType != null">
+				, #{assType}
+		</if>
+			)
+	</insert>
+	<!-- 관심 대출 추가 -->
+	<update id="updateFocusLoan" parameterType="String">
+		update loan_history 
+		set focus_loan = 'Y'
+		where loan_no = #{loanNo}
+	</update>
+	<!-- 행원의 모든 관심 대출 가져오기 -->
+	<select id="selectFocusLoan" parameterType="String" resultMap="loanHisMap">
+		select (a.pcpl_amt - a.left_amt) / a.pcpl_amt * 100 as rpyRate, 
+			   trunc(a.pcpl_amt * (a.interest / 100 / 12 * a.loan_mons / decode(a.loan_mons, 0, 1, a.loan_mons))) as interestAmt, a.*,
+				(select name from loan_prod where prod_no = a.prod_no) as prod_name
+		from (select loan_no, loan_type, to_char(start_date, 'yyyy-mm-dd') as start_date, left_amt, trunc((fin_date - start_date)/30) as loan_mons,
+			  to_char(fin_date, 'yyyy-mm-dd') as fin_date, pcpl_amt, interest, loan_acnt, 
+			  interest_acnt, interest_date, ass_type, loan_status, empno, prod_no, bizr_no, focus_loan
+      		  from loan_history) a
+        where empno = #{empno} and focus_loan = 'Y'
+        order by start_date
+	</select>
+</mapper>

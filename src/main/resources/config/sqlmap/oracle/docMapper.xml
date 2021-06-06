@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="doc.dao.DocDAO">
+	<resultMap type="doc" id="docMap">
+		<result column="doc_no" property="docNo"/>
+		<result column="doc_type" property="docType"/>
+		<result column="issue_date" property="issueDate"/>
+		<result column="doc_ori_name" property="docOriName"/>
+		<result column="doc_save_name" property="docSaveName"/>
+		<result column="doc_size" property="docSize"/>
+		<result column="uld_date" property="uldDate"/>
+		<result column="bizr_no" property="bizrNo"/>
+	</resultMap>
+	<select id="selectAll" parameterType="corp" resultMap="docMap">
+		select doc_no, doc_type, to_char(issue_date, 'yyyy-mm-dd') as issue_date, doc_ori_name, doc_save_name,
+				uploader, doc_size, to_char(uld_date, 'yyyy-mm-dd') as uld_date, bizr_no
+		from doc
+		where bizr_no = #{bizrNo}
+		order by doc_no desc
+	</select>
+	
+	<select id="selectOne" parameterType="int" resultMap="docMap">
+		select doc_no, doc_type, to_char(issue_date, 'yyyy-mm-dd') as issue_date, doc_ori_name, doc_save_name,
+				uploader, doc_size, to_char(uld_date, 'yyyy-mm-dd') as uld_date, bizr_no
+		from doc
+		where doc_no = #{docNo}
+	</select>
+	
+	<insert id="insert" parameterType="doc">
+		insert into doc(doc_no, doc_type, issue_date, doc_ori_name, doc_save_name, 
+						uploader, doc_size, bizr_no) 
+		values(seq_doc_no.nextval, #{docType}, to_date(#{issueDate}, 'yyyy-mm-dd'), #{docOriName}, #{docSaveName},
+			   #{uploader}, #{docSize}, #{bizrNo})
+	</insert>
+	
+	<delete id="delete" parameterType="int">
+		delete doc 
+		 where doc_no = #{docNo}
+	</delete>
+	<!-- 신청 번호로 신청 서류 조회 -->
+	<select id="selectByAppNo" parameterType="int" resultMap="docMap">
+		select d.doc_no, doc_type, to_char(issue_date, 'yyyy-mm-dd') as issue_date, doc_ori_name, doc_save_name,
+				uploader, doc_size, to_char(uld_date, 'yyyy-mm-dd') as uld_date, bizr_no 
+		from loan_doc ld, doc d
+		where ld.doc_no = d.doc_no and ld.app_no = #{appNo}
+	</select>
+	<!-- 서류번호(docNo)로 서류 조회 -->
+	<select id="selectByDocNoArr" parameterType="map" resultMap="docMap">
+		select doc_no, doc_type, to_char(issue_date, 'yyyy-mm-dd') as issue_date, doc_ori_name, doc_save_name,
+				uploader, doc_size, to_char(uld_date, 'yyyy-mm-dd') as uld_date, bizr_no 
+		from doc
+		where doc_no in 
+		<foreach collection="array" item="docNo" separator="," open="(" close=")">
+			#{docNo}
+		</foreach>
+	</select>
+</mapper>

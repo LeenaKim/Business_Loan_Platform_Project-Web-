@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:task="http://www.springframework.org/schema/task"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans   
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context   
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/mvc
+    http://www.springframework.org/schema/mvc/spring-mvc.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx.xsd 
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+     
+    <!-- 스케쥴러 어노테이션 사용 --> 
+  	<task:annotation-driven></task:annotation-driven>
+
+	<context:component-scan base-package="beone" />
+    <mvc:annotation-driven>
+    	<mvc:message-converters>
+    		<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+    		<property name="supportedMediaTypes">
+    			<list>
+    				<value>text/html; chartset=utf-8</value>
+    				<value>application/json; charset=utf-8</value>
+    			</list>
+    		</property>
+    		</bean>
+    		<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+    		<property name="supportedMediaTypes">
+    			<list>
+    				<value>text/html; charset=UTF-8</value>
+    			</list>
+    		</property>
+    		</bean>
+    	</mvc:message-converters>
+    </mvc:annotation-driven>
+    
+    <!-- logback의 sql 설정 -->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource" >
+       <property name="driverClassName" value="net.sf.log4jdbc.sql.jdbcapi.DriverSpy" />
+       <property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl" />
+      <property name="username" value="SCOTT" />
+       <property name="password" value="tiger" />
+    </bean> 
+    <!-- 
+    오픈스택 DB 서버 
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    	<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+    	<property name="url" value="jdbc:oracle:thin:@172.16.1.108:1521:xe" />
+    	<property name="username" value="SCOTT"/>
+    	<property name="password" value="leena"/>
+    </bean>  -->
+    
+    <!-- <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    	<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+    	<property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl" />
+    	<property name="username" value="SCOTT"/>
+    	<property name="password" value="tiger"/>
+    </bean>  -->
+    
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="configLocation" value="classpath:config/mybatis/sqlMapConfig.xml"></property>
+		<property name="mapperLocations" value="classpath:config/sqlmap/oracle/*.xml"/>
+	</bean>
+	
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg ref="sqlSessionFactory"></constructor-arg>
+	</bean>
+	  
+    <bean class="org.springframework.web.multipart.commons.CommonsMultipartResolver" id="multipartResolver">
+    	<property name="maxUploadSize" value="10485760" />
+    </bean>
+    
+
+	<mvc:default-servlet-handler />
+	<mvc:view-controller path="/corp/agreeBasic" view-name="corp/agreeBasic"/>
+	<mvc:view-controller path="/corp/agreeView" view-name="corp/agreeView"/>
+	<mvc:view-controller path="/corp/agreeUse" view-name="corp/agreeUse"/>
+	<mvc:view-controller path="/emp" view-name="emp/empIndex"/>
+
+	<mvc:view-resolvers>
+		<mvc:jsp prefix="/WEB-INF/jsp/" suffix=".jsp" />
+	</mvc:view-resolvers>
+	<!-- corp 로그인 인터셉터 -->
+	<bean class="beone.interceptor.LoginInterceptor" id="loginInterceptor" />
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/corp/**"/>
+			<mvc:exclude-mapping path="/corp/loanDetail"/>
+			<mvc:exclude-mapping path="/corp/loanProdTest"/>
+			<mvc:exclude-mapping path="/corp/loanProd/**"/>
+			<ref bean="loginInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+	<!-- emp 로그인 인터셉터 -->
+	<bean class="beone.interceptor.EmpLoginInterceptor" id="empLoginInterceptor" />
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/emp/**"/>
+			<mvc:exclude-mapping path="/emp/login"/>			
+			<mvc:exclude-mapping path="/emp/logout"/>			
+			<ref bean="empLoginInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- 트랜잭션 처리  -->
+   <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" id="transactionManager" >
+      <property name="dataSource" ref="dataSource" />
+   </bean>
+   <tx:annotation-driven transaction-manager="transactionManager"/>
+   
+</beans>

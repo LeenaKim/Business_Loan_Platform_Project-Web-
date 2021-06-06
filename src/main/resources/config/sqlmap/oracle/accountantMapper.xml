@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="accountant.dao.AccountantDAO">
+	<resultMap type="accountant" id="accountantMap">
+		<result column="acc_no" property="accNo"/>
+	</resultMap>
+	<resultMap type="corp" id="corpMap">
+		<result column="bizr_no" property="bizrNo"/>
+		<result column="pw" property="pw"/>
+		<result column="name" property="name"/>
+		<result column="name_eng" property="nameEng"/>
+		<result column="jurir_no" property="jurirNo"/>
+		<result column="corp_cls" property="corpCls"/>
+		<result column="induty_code" property="indutyCode"/>
+		<result column="adres" property="adres"/>
+		<result column="hm_url" property="hmUrl"/>
+		<result column="country_code" property="countryCode"/>
+		<result column="phn_no" property="phnNo"/>
+		<result column="country_code_fax" property="countryCodeFax"/>
+		<result column="fax_no" property="faxNo"/>
+		<result column="est_dt" property="estDt"/>
+		<result column="acc_mt" property="accMt"/>
+	</resultMap>
+	<!-- 로그인 조회 -->
+	<select id="login" parameterType="accountant" resultMap="accountantMap">
+		select acc_no, name, phone, pw
+		from accountant
+		where acc_no = #{accNo} and pw = #{pw}
+	</select>
+	<!-- 기업 담당 기장세무사 리스트 가져오기 -->
+	<select id="selectAll" parameterType="corp" resultMap="accountantMap">
+		select ac.acc_no, ac.name, ac.phone
+		from acc_auth aa, accountant ac
+		where aa.acc_no = ac.acc_no and aa.auth_status = 'C' and aa.bizr_no = #{bizrNo}	
+	</select>
+	<!-- 담당 기업 정보 불러오기 -->
+	<select id="selectAllCorp" parameterType="accountant" resultMap="corpMap">
+		select bizr_no, pw, name, name_eng, jurir_no, corp_cls, induty_code, adres, hm_url, country_code,
+			   phn_no, country_code_fax, fax_no, to_char(est_dt, 'yyyy-mm-dd') as est_dt, acc_mt
+		from corp
+		where bizr_no in (
+		    select bizr_no
+		    from acc_auth aa, accountant acc
+		    where aa.acc_no = acc.acc_no and acc.acc_no = #{accNo} and aa.auth_status = 'C')
+	</select>
+</mapper>

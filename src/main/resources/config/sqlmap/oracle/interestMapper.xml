@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="interest.dao.InterestDAO">
+	<resultMap type="interest" id="interestMap">
+		<result column="pay_no" property="payNo"/>
+		<result column="loan_no" property="loanNo"/>
+		<result column="pay_amt" property="payAmt"/>
+		<result column="pay_date" property="payDate"/>
+		<result column="next_mon_amt" property="nextMonAmt"/>
+	</resultMap>
+	<!-- 총 대출건수 가져오기 -->
+	<select id="selectCnt" parameterType="String" resultType="int">
+		select count(*)
+		from (select pay_no, loan_no, pay_amt, to_char(pay_date, 'yyyy-mm-dd') as pay_date, next_mon_amt
+			  from pay_interest
+			  where loan_no = #{loanNo}
+			  order by pay_date desc)
+	</select>
+	<!-- 대출 건에 해당하는 이자납부내역 가져오기 -->
+	<select id="selectPerPage" parameterType="map" resultMap="interestMap">
+		select *
+			from (select rownum as rnum, a.*
+				  from (select pay_no, loan_no, pay_amt, to_char(pay_date, 'yyyy-mm-dd') as pay_date, next_mon_amt
+				        from pay_interest
+				        where loan_no = #{loanNo}
+				        order by pay_date desc) a
+				  where <![CDATA[rownum <= #{boardCntPerPage}*#{pageNo})]]>
+		    where rnum > #{boardCntPerPage}*(#{pageNo}-1)
+	</select>
+	<!-- loanNo로 모든 이자납부내역 불러오기 -->
+	<select id="selectAllByLoanNo" parameterType="String" resultMap="interestMap">
+		select pay_no, loan_no, pay_amt, to_char(pay_date, 'yyyy-mm-dd') as pay_date, next_mon_amt
+		from pay_interest
+		where loan_no = #{loanNo}
+		order by pay_date desc
+	</select>
+	
+	<!-- 매월 3일, 12일, 23일에 이자 징수하는 Scheduler -->
+	<insert id="autoInterestPay" parameterType="String">
+	<![CDATA[
+	{call
+		declare
+		    TYPE t_loan_no IS TABLE OF loan_history.loan_no%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_interest_acnt IS TABLE OF loan_history.interest_acnt%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_next_mon_amt IS TABLE OF pay_interest.next_mon_amt%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_pcpl_amt IS TABLE OF loan_history.pcpl_amt%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_interest IS TABLE OF loan_history.interest%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_left_mons IS TABLE OF tbl_left_mons.left_mons%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_pay_amt IS TABLE OF pay_interest.pay_amt%TYPE INDEX BY BINARY_INTEGER;
+		    TYPE t_balance IS TABLE OF acnt.balance%TYPE INDEX BY BINARY_INTEGER;
+		    
+		    v_loan_no           t_loan_no;
+		    v_interest_acnt     t_interest_acnt;
+		    v_next_mon_amt      t_next_mon_amt;
+		    v_pcpl_amt          t_pcpl_amt;
+		    v_interest          t_interest;
+		    v_balance           t_balance;
+		    v_left_mons         t_left_mons;
+		    v_pay_amt           t_pay_amt;
+		    v_pay_ori           t_pay_amt;
+		    v_cnt               NUMBER;
+		    
+		begin
+		    -- 매개변수로 들어온 날짜에 이자납부할 기업이 총 몇개인지 구하기 
+		    select count(*) into v_cnt
+		    from(
+		        select loan_no, interest_acnt
+		        from loan_history
+		        where interest_date = #{interest_date});
+		      
+		    -- 오늘 날짜가 이자납부일인 대출 내역 찾기 
+		    for i in 2..v_cnt loop
+		        select loan_no, interest_acnt, left_mons, pcpl_amt, interest  
+		        into v_loan_no(i), v_interest_acnt(i), v_left_mons(i), v_pcpl_amt(i), v_interest(i)
+		        from (select rownum as rownumber, loan_no, interest_acnt, trunc((fin_date - start_date)/30) as left_mons, pcpl_amt, interest
+		              from loan_history
+		              where interest_date = #{interest_date}) 
+		        where rownumber = i;
+		        
+		        --dbms_output.put_line('v_loan_no'||v_loan_no(i));
+		        -- '제수가 0입니다' 에러 방지용
+		        if v_left_mons(i) = 0 then
+		            v_left_mons(i) := 1;
+		        end if;
+		        
+		    -- 대출 내역의 가장 최근 '다음달 납부금액' 찾기 
+		        select max(next_mon_amt) into v_next_mon_amt(i)
+		        from (select next_mon_amt
+		                from pay_interest
+		                where loan_no = v_loan_no(i)
+		                order by pay_date desc
+		                )
+		        where rownum <= 1;
+		       
+		    
+		    -- '다음달 납부금액'이 없을때 (첫 이자납입) : interest_amt만큼 
+		        v_pay_ori(i) := trunc(v_pcpl_amt(i) * (v_interest(i) / 100) / 12 * v_left_mons(i) / v_left_mons(i));
+		        
+		        if v_next_mon_amt(i) is null then
+		            v_pay_amt(i) := v_pay_ori(i);
+		            
+		    -- '다음달 납부금액'이 있을때 그만큼을 이번달에 납부해야함.
+		        else
+		            v_pay_amt(i) := v_next_mon_amt(i);
+		        end if;
+		        
+		    
+		        
+		    -- 이자납부계좌의 잔액 가져오기
+		        select balance into v_balance(i)
+		        from acnt
+		        where no = v_interest_acnt(i);
+		        --dbms_output.put_line(v_balance(i));
+		    
+		    -- 이자납입계좌에서 납부금액만큼 차감
+		        update acnt set balance = balance - v_pay_amt(i) where no = v_interest_acnt(i);
+		   
+		    -- 거래내역 테이블에 추가
+		        insert into transaction(no, summary, main_acnt_no, obj_name, w_amount, corr, balance)
+		        values(seq_transaction_no.nextval, '하나 대출 '||v_loan_no(i)||'이자납입', v_interest_acnt(i), '하나은행', v_pay_amt(i), '하나', (v_balance(i) - v_pay_amt(i)));
+		        
+		    -- 이자 납부 내역 추가      
+		        -- 잔액이 충분할 경우 
+		        if v_balance(i) >= v_pay_amt(i) then
+		            --dbms_output.put_line('잔액이 있을경우');
+		            insert into pay_interest values(seq_interest_no.nextval, v_loan_no(i), v_pay_amt(i), sysdate, v_pay_ori(i));
+		        else
+		        -- 잔액이 부족할 경우 : 내야할금액 + 다음달금액 + 연체료(1%)
+		            --dbms_output.put_line('잔액이 없을경우');
+		            insert into 
+		            pay_interest values(seq_interest_no.nextval, v_loan_no(i), 0, sysdate, (v_pay_ori(i) + v_pay_amt(i)) * 1.01);
+		        end if;
+		            
+		    end loop;
+		    
+		    exception
+		        when no_data_found then
+		        null;
+		end
+		
+		
+	}
+	]]>
+	</insert>
+</mapper>
