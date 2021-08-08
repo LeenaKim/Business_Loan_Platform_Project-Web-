@@ -80,7 +80,7 @@ Finally, the Beone platform is also convenient for developers. Since it runs on 
 
 ![Title_page.png](/img/Title_page.png)](/BEONE_eng.pptx)
 
-
+<img src="/img/Title_page.png"/>[Go to ppt](/BEONE_eng.pptx)
 
 ## Demonstration Clip (Korean)
 
