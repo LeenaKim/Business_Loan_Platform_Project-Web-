@@ -78,9 +78,11 @@ Finally, the Beone platform is also convenient for developers. Since it runs on 
 
 ## Presentation
 
+:point_right: Go to ppt(/BEONE_eng.pptx)
+
 
 
 ## Demonstration Clip
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/MRmPn7pdGP8" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Title_page.png](/img/Title_page.png)](https://www.youtube.com/embed/MRmPn7pdGP8)
 
