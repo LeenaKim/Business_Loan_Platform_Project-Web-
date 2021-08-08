@@ -78,11 +78,11 @@ Finally, the Beone platform is also convenient for developers. Since it runs on 
 
 ## Presentation
 
-:point_right: Go to ppt(/BEONE_eng.pptx)
+![Title_page.png](/img/Title_page.png)](/BEONE_eng.pptx)
 
 
 
-## Demonstration Clip
+## Demonstration Clip (Korean)
 
 [![Title_page.png](/img/Title_page.png)](https://www.youtube.com/embed/MRmPn7pdGP8)
 
