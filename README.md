@@ -78,9 +78,27 @@ Finally, the Beone platform is also convenient for developers. Since it runs on 
 
 ## Presentation
 
-![Title_page.png](/img/Title_page.png)](/BEONE_eng.pptx)
+![Title_page.png](/img/ppt2.png)
 
-<img src="/img/Title_page.png"/>[Go to ppt](/BEONE_eng.pptx)
+![ppt3.png](/img/ppt3.png)
+
+![ppt4.png](/img/ppt4.png)
+
+![ppt5.png](/img/ppt5.png)
+
+![ppt6.png](/img/ppt6.png)
+
+![ppt7.png](/img/ppt7.png)
+
+![ppt8.png](/img/ppt8.png)
+
+![ppt9.png](/img/ppt9.png)
+
+![ppt10.png](/img/ppt10.png)(https://www.youtube.com/embed/MRmPn7pdGP8)
+
+![ppt11.png](/img/ppt11.png)
+
+
 
 ## Demonstration Clip (Korean)
 
